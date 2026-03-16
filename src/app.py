@@ -1,31 +1,35 @@
 import streamlit as st
 import librosa
 import numpy as np
-import joblib
+import pandas as pd
 import soundfile as sf
-
-# Load trained model
-model = joblib.load("models/sound_classifier.pkl")
+from sklearn.ensemble import RandomForestClassifier
 
 st.title("Sound Classification AI")
 
-st.write("Upload an audio file and the AI will predict the sound.")
+# Load dataset
+df = pd.read_csv("data/audio_features.csv")
 
-# Upload audio file
+X = df.drop("label", axis=1)
+y = df["label"]
+
+# Train model
+model = RandomForestClassifier(n_estimators=100)
+model.fit(X, y)
+
+st.success("Model ready")
+
 uploaded_file = st.file_uploader("Upload WAV file", type=["wav"])
 
 if uploaded_file is not None:
 
     st.audio(uploaded_file)
 
-    # Read audio
     signal, sample_rate = sf.read(uploaded_file)
 
-    # Convert to mono if stereo
     if len(signal.shape) > 1:
         signal = np.mean(signal, axis=1)
 
-    # Extract MFCC
     mfcc = librosa.feature.mfcc(
         y=signal,
         sr=sample_rate,
@@ -33,10 +37,8 @@ if uploaded_file is not None:
     )
 
     mfcc_scaled = np.mean(mfcc.T, axis=0)
-
     mfcc_scaled = mfcc_scaled.reshape(1, -1)
 
-    # Predict
     prediction = model.predict(mfcc_scaled)
 
     st.success(f"Predicted Sound: {prediction[0]}")
