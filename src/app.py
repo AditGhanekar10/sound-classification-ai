@@ -7,7 +7,7 @@ import librosa.display
 import matplotlib.pyplot as plt
 from sklearn.ensemble import RandomForestClassifier
 
-# Page config
+# Page settings
 st.set_page_config(
     page_title="Sound Classification AI",
     page_icon="🎧",
@@ -16,17 +16,16 @@ st.set_page_config(
 
 # Header
 st.title("🎧 Sound Classification AI")
-st.markdown(
-"""
-Upload an **audio (.wav) file** and the AI will analyze the sound and predict what it is.
 
-Examples you can try:
-- dog barking  
-- car horn  
-- siren  
+st.markdown("""
+Upload a **.wav audio file** and the AI will analyze the sound.
+
+Example sounds you can try:
+- dog barking
+- car horn
+- siren
 - drilling
-"""
-)
+""")
 
 # Load dataset
 df = pd.read_csv("audio_features.csv")
@@ -40,8 +39,9 @@ model.fit(X, y)
 
 st.success("Model ready for predictions")
 
+# Upload file
 uploaded_file = st.file_uploader(
-    "Upload your audio file",
+    "Upload an audio file (.wav)",
     type=["wav"]
 )
 
@@ -51,9 +51,11 @@ if uploaded_file is not None:
 
     signal, sample_rate = sf.read(uploaded_file)
 
+    # Convert stereo to mono
     if len(signal.shape) > 1:
         signal = np.mean(signal, axis=1)
 
+    # Waveform
     st.subheader("📈 Audio Waveform")
 
     fig, ax = plt.subplots()
@@ -61,6 +63,7 @@ if uploaded_file is not None:
     ax.set_title("Waveform")
     st.pyplot(fig)
 
+    # Prediction
     with st.spinner("🔍 Analyzing sound..."):
 
         mfcc = librosa.feature.mfcc(
@@ -72,15 +75,24 @@ if uploaded_file is not None:
         mfcc_scaled = np.mean(mfcc.T, axis=0)
         mfcc_scaled = mfcc_scaled.reshape(1, -1)
 
-        prediction = model.predict(mfcc_scaled)
-        probabilities = model.predict_proba(mfcc_scaled)
+        probabilities = model.predict_proba(mfcc_scaled)[0]
 
-        confidence = np.max(probabilities)
+        classes = model.classes_
 
-    st.subheader("🔎 Prediction Result")
+        results = sorted(
+            zip(classes, probabilities),
+            key=lambda x: x[1],
+            reverse=True
+        )
 
-    st.success(f"Predicted Sound: **{prediction[0]}**")
+    st.subheader("🔎 Prediction Results")
 
-    st.progress(float(confidence))
+    top3 = results[:3]
 
-    st.write(f"Confidence: **{confidence*100:.2f}%**")
+    for label, prob in top3:
+
+        st.write(f"**{label}**")
+
+        st.progress(float(prob))
+
+        st.write(f"{prob*100:.2f}% confidence")
