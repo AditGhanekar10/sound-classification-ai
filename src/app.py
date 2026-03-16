@@ -8,7 +8,7 @@ from sklearn.ensemble import RandomForestClassifier
 st.title("Sound Classification AI")
 
 # Load dataset
-df = pd.read_csv("data/audio_features.csv")
+df = pd.read_csv("audio_features.csv")
 
 X = df.drop("label", axis=1)
 y = df["label"]
